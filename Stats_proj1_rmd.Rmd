@@ -1,0 +1,157 @@
+---
+title: "Untitled"
+author: "Joaquin Dominguez"
+date: "2/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r cars}
+
+cars <- read_csv('https://raw.githubusercontent.com/hmlam1/MSDS-Projects/main/Applied%20Stats%20Project%201/Vehicle_MSRP.csv', show_col_types=F)
+
+cars <- janitor::clean_names(cars)
+
+miss_var_summary(cars)
+
+### replacing electric mv in cylinders
+cars <- cars %>% mutate(engine_cylinders = ifelse(engine_fuel_type == 'electric', 0, engine_cylinders))
+
+View(cars %>% filter(is.na(engine_cylinders)))
+
+### replacing mv of Suzuki Verona (engine_cylinders, engine_fuel)
+cars <- cars %>% mutate(engine_cylinders = ifelse(model == 'Verona', 6, engine_cylinders), engine_fuel_type = ifelse(model  == 'Verona', 'regular unleaded', engine_fuel_type))
+
+
+## remove rotaryy engine mv
+cars <- cars %>% filter(!is.na(engine_cylinders))
+
+
+## mv for number of doors
+cars <- cars %>% mutate(number_of_doors = ifelse(make == 'Tesla' & model == 'Model S' & year == 2016,4, ifelse(make == 'Ferrari' & model == 'FF' & year == 2013,2,number_of_doors)))
+
+
+## mv for engine_hp
+cars <- cars %>% mutate(engine_hp = ifelse(model == '500e', 111, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Continental' & make == 'Lincoln', 350, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Escape' & make == 'Ford', 206, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Fit EV' & make == 'Honda', 120, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Focus' & make == 'Ford', 143, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Freestar' & make == 'Ford', 195, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Impala' & make == 'Chevrolet', 196, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Leaf' & make == 'Nissan', 107, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'MKZ' & make == 'Lincoln', 188, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Model S' & make == 'Tesla', 400, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'RAV4 EV' & make == 'Toyota', 154, engine_hp))
+cars <- cars %>% mutate(engine_hp = ifelse(model == 'Soul EV' & make == 'Kia', 109, engine_hp))
+cars <- cars %>% filter(!is.na(engine_hp))
+miss_var_summary(cars)
+
+### remove all observations where msrp == 2000
+cars <- cars %>% filter(!msrp==2000)
+cars <- cars %>% filter(year>=2001)
+cars <- cars %>% filter(msrp<150000)
+cars <- cars %>% filter(!(year<=2010 & msrp>= 100000))
+
+
+### fix obs error with  highway_mpg
+cars <- cars %>% mutate(highway_mpg = ifelse(highway_mpg == 354, 34, highway_mpg))
+
+
+### no errors on engine_hp, but might consider transforming during models
+
+
+### Popularity is a weird variable. Score is set by brand rather than model. And Ford has the highest pop score by far, but certainly not the highest msrp, so I suspect this var won't be used for predicting msrp.
+
+
+### set relevant variables as factors
+factor_vars <- c("make", "model", "engine_fuel_type", "engine_cylinders", "transmission_type", "driven_wheels", "number_of_doors", "market_category", "vehicle_size", "vehicle_style")
+cars[factor_vars] <- lapply(cars[factor_vars], factor)
+
+
+### setting ordered factor levels for market_category based on mean msrp of each category
+
+
+### check distribution of categories
+cars %>% select(msrp, market_category) %>%
+  ggplot(aes(x = msrp, fill=market_category))+
+  geom_histogram()+theme(legend.position='none')
+
+### categories look evenly distributed, moving forward with releveling.
+
+mc_levels <- cars %>% select(msrp, market_category) %>%
+  group_by(market_category) %>% summarize(mean(msrp)) %>% arrange(desc(`mean(msrp)`))
+
+
+cars$market_category <- factor(cars$market_category, ordered = TRUE, levels = mc_levels$market_category)
+
+
+summary(cars$market_category)
+
+### setting ordered levels for engine_cylinders
+ec_levels <- cars %>% select(msrp, engine_cylinders) %>%
+  group_by(engine_cylinders) %>% summarize(mean(msrp)) %>% arrange(desc(`mean(msrp)`))
+
+cars$engine_cylinders <- factor(cars$engine_cylinders, ordered=TRUE, levels=ec_levels$engine_cylinders)
+
+
+### ordering transmisssion_type
+cars %>% ggplot(aes(y = msrp, fill = transmission_type))+geom_boxplot()
+
+
+tt_levels <- cars %>% select(msrp, transmission_type) %>%
+  group_by(transmission_type) %>% summarize(mean(msrp)) %>% arrange(desc(`mean(msrp)`))
+
+cars$transmission_type <- factor(cars$transmission_type, ordered=TRUE, levels=tt_levels$transmission_type)
+
+### ordering vehicle_style
+cars %>% ggplot(aes(y = msrp, fill = vehicle_style))+geom_boxplot()
+
+vs_levels <- cars %>% select(msrp, vehicle_style) %>%
+  group_by(vehicle_style) %>% summarize(median(msrp)) %>% arrange(desc(`median(msrp)`))
+
+cars$vehicle_style <- factor(cars$vehicle_style, ordered=TRUE, levels=vs_levels$vehicle_style)
+
+
+### exploring correlation patterns
+### starting with numeric
+i1 <- sapply(cars, is.numeric)
+y1 <- 'msrp'
+x1 <- setdiff(names(cars)[i1], y1)
+cor(cars[x1], cars[[y1]])
+
+
+### we see engine_hp with highest corr (.797) and popularity with lowess (0.0222)
+
+### visual representation of correlation matrix
+num_corr <- cor(cars[x1], cars[[y1]])
+cnames <- c('year', 'engine_hp', 'highway_mpg', 'city_mpg', 'popularity')
+num_corr <- cbind(num_corr, cnames) %>% as.data.frame()
+num_corr %>% ggplot(aes(x = cnames, y = pearson, color = cnames))+geom_point()+theme_classic()+ggtitle("MSRP correlation with numeric variables")+labs(x = "Numeric Variables", y = 'Correlation')+theme(legend.position='none')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
