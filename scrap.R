@@ -206,6 +206,19 @@ vs_levels <- cars %>% select(msrp, vehicle_style) %>%
 
 cars$vehicle_style <- factor(cars$vehicle_style, ordered=TRUE, levels=vs_levels$vehicle_style)
 
+# ordering vehicle_size
+
+cars %>% select(msrp, vehicle_size) %>%
+  group_by(vehicle_size) %>% summarize(median(msrp)) %>% arrange(desc(`median(msrp)`))
+
+cars$vehicle_style <- factor(cars$vehicle_style, ordered=TRUE, levels=vs_levels$vehicle_style)
+
+
+median(cars$msrp)
+
+install.packages('polycor')
+library(polycor)
+
 
 
 install.packages("Hmisc")
@@ -238,8 +251,28 @@ num_corr %>% ggplot(aes(x = cnames, y = pearson, color = cnames))+geom_point()+t
 
 
 
+cars %>% ggplot(aes(x = engine_fuel_type, y = msrp)) +geom_point()
 
 
+hetcor(cars, )
+
+cat1 <- sapply(cars, is.factor)
+cat1_names <- setdiff(names(cars)[cat1], y1)
+cat1_names
+summary(aov(cars$msrp~cars$vehicle_style))
+
+cor.test(x=cars$msrp, y=cars$transmission_type, method='spearman')
+
+class(cars$engine_hp)
+
+cars %>% ggplot(aes(x=msrp,  y=..density..))+geom_freqpoly(aes(color = transmission_type),  binwidth = 5000)
+
+cars %>% ggplot(aes(x=reorder(vehicle_size, msrp, FUN=median), y = msrp))+geom_boxplot()
+hetcor(cars, use='pairwise.complete.obs')
+hetcor(cars$msrp, cars$engine_fuel_type, cars$model, cars$make, cars$engine_cylinders, cars$transmission_type, cars$driven_wheels, cars$number_of_doors, cars$market_category, cars$vehicle_size, cars$vehicle_style)
+
+
+summary(cars$vehicle_size)
 
 
 
