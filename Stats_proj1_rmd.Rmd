@@ -14,6 +14,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r cars}
 
+library(tidyverse)
+library(janitor)
+library(polycor)
+library(naniar)
+
+
+
 cars <- read_csv('https://raw.githubusercontent.com/hmlam1/MSDS-Projects/main/Applied%20Stats%20Project%201/Vehicle_MSRP.csv', show_col_types=F)
 
 cars <- janitor::clean_names(cars)
@@ -119,6 +126,15 @@ vs_levels <- cars %>% select(msrp, vehicle_style) %>%
 cars$vehicle_style <- factor(cars$vehicle_style, ordered=TRUE, levels=vs_levels$vehicle_style)
 
 
+# ordering vehicle_size
+
+vsi_levels <- cars %>% select(msrp, vehicle_size) %>%
+  group_by(vehicle_size) %>% summarize(median(msrp)) %>% arrange(desc(`median(msrp)`))
+
+cars$vehicle_size <- factor(cars$vehicle_size, ordered=TRUE, levels=vsi_levels$vehicle_size)
+
+
+
 ### exploring correlation patterns
 ### starting with numeric
 i1 <- sapply(cars, is.numeric)
@@ -127,7 +143,7 @@ x1 <- setdiff(names(cars)[i1], y1)
 cor(cars[x1], cars[[y1]])
 
 
-### we see engine_hp with highest corr (.797) and popularity with lowess (0.0222)
+### we see engine_hp with highest corr (.797) and popularity with lowest (0.0222)
 
 ### visual representation of correlation matrix
 num_corr <- cor(cars[x1], cars[[y1]])
@@ -136,19 +152,11 @@ num_corr <- cbind(num_corr, cnames) %>% as.data.frame()
 num_corr %>% ggplot(aes(x = cnames, y = pearson, color = cnames))+geom_point()+theme_classic()+ggtitle("MSRP correlation with numeric variables")+labs(x = "Numeric Variables", y = 'Correlation')+theme(legend.position='none')
 
 
+###  correlation of categorical variables with msrp
 
+hetcor(cars$msrp, cars$engine_fuel_type, cars$model, cars$make, cars$engine_cylinders, cars$transmission_type, cars$driven_wheels, cars$number_of_doors, cars$market_category, cars$vehicle_size, cars$vehicle_style)
 
-
-
-
-
-
-
-
-
-
-
-
+### it appears market_category has the highest correlation with msrp (0.7203), followed by engine_cylinders with 0.6. Of insignificant correlation are model (.012), driven wheels(0.055) and number of doors(.1179)
 
 
 

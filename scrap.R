@@ -208,10 +208,10 @@ cars$vehicle_style <- factor(cars$vehicle_style, ordered=TRUE, levels=vs_levels$
 
 # ordering vehicle_size
 
-cars %>% select(msrp, vehicle_size) %>%
+vsi_levels <- cars %>% select(msrp, vehicle_size) %>%
   group_by(vehicle_size) %>% summarize(median(msrp)) %>% arrange(desc(`median(msrp)`))
 
-cars$vehicle_style <- factor(cars$vehicle_style, ordered=TRUE, levels=vs_levels$vehicle_style)
+cars$vehicle_size <- factor(cars$vehicle_size, ordered=TRUE, levels=vsi_levels$vehicle_size)
 
 
 median(cars$msrp)
@@ -247,7 +247,8 @@ x1 <- setdiff(names(cars)[i1], y1)
 num_corr <- cor(cars[x1], cars[[y1]])
 cnames <- c('year', 'engine_hp', 'highway_mpg', 'city_mpg', 'popularity')
 num_corr <- cbind(num_corr, cnames) %>% as.data.frame()
-num_corr %>% ggplot(aes(x = cnames, y = pearson, color = cnames))+geom_point()+theme_classic()+ggtitle("MSRP correlation with numeric variables")+labs(x = "Numeric Variables", y = 'Correlation')+theme(legend.position='none')
+num_corr
+num_corr %>% ggplot(aes(x = cnames, y = V1, color = cnames))+geom_point()+theme_classic()+ggtitle("MSRP correlation with numeric variables")+labs(x = "Numeric Variables", y = 'Correlation')+theme(legend.position='none')
 
 
 
